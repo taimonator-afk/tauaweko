@@ -6,7 +6,9 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script type="module" src="./firebase-setup.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-</head>
+</head <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.5.28/dist/jspdf.plugin.autotable.min.js"></script>
+>
 
 <body class="bg-gradient-to-br from-blue-900 to-indigo-800 min-h-screen text-white p-6">
 
@@ -201,9 +203,20 @@ loadAll();
 /* ---------------------------------------------
    EXPORT PDF (connected in Phase 4)
 --------------------------------------------- */
+import { generateStudentReport } from "./student-report.js";
+
 document.getElementById("exportPdf").onclick = () => {
-  alert("PDF export coming in Message 4!");
+  generateStudentReport(
+    profile,
+    progress,
+    {
+      assessmentChartCanvas: document.getElementById("assessmentChart"),
+      interactiveChartCanvas: document.getElementById("interactiveChart")
+    },
+    studentClasses
+  );
 };
+
 
 </script>
 
