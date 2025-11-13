@@ -170,9 +170,578 @@ function render() {
         return;
     }
 
-    // PART 2 (Dashboard, Lessons, Assessment, etc.)
-    // Will be inserted in next message
+    /* ---------------------------------------------------------
+   RENDER FUNCTION (MAIN UI)
+--------------------------------------------------------- */
+function render() {
+    const app = document.getElementById("app");
+    if (!app) return;
+
+    const lessonsCompleted = Object.keys(state.userProgress.lessons || {}).length;
+    const assessmentsCompleted = Object.keys(state.userProgress.assessments || {}).length;
+    const displayName = state.displayName || "Tauira";
+
+    /* -----------------------------------------------------
+       DASHBOARD
+    ----------------------------------------------------- */
+    if (state.currentView === "dashboard") {
+        app.innerHTML = `
+            <div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+                <div class="max-w-7xl mx-auto">
+                    
+                    <!-- Header -->
+                    <div class="bg-white rounded-lg shadow-md p-4 mb-6 flex items-center justify-between">
+                        <div class="flex items-center space-x-4">
+                            <h1 class="text-2xl font-bold text-blue-900">Tau Āweko</h1>
+                        </div>
+
+                        <button onclick="logout()" 
+                            class="flex items-center space-x-2 text-gray-600 hover:text-gray-800">
+                            <span>${displayName}</span>
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" 
+                                viewBox="0 0 24 24"><path stroke-linecap="round"
+                                stroke-linejoin="round" stroke-width="2" 
+                                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 
+                                3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 
+                                013 3v1"></path></svg>
+                        </button>
+                    </div>
+
+                    <!-- Welcome -->
+                    <div class="bg-white rounded-lg shadow-md p-6">
+                        <h2 class="text-2xl font-bold text-blue-900 mb-2">
+                            Kia ora, ${displayName}!
+                        </h2>
+                        <p class="text-gray-600">Continue learning Tau Āweko</p>
+                    </div>
+
+                    <!-- Stats -->
+                    <div class="grid md:grid-cols-3 gap-6 my-6">
+                        <div class="bg-blue-50 p-6 rounded-lg border-2 border-blue-200">
+                            <h3 class="font-bold text-lg mb-1">Ngā Akoranga</h3>
+                            <p class="text-2xl font-bold text-blue-600">${lessonsCompleted}/3</p>
+                            <p class="text-sm text-gray-600">completed</p>
+                        </div>
+
+                        <div class="bg-green-50 p-6 rounded-lg border-2 border-green-200">
+                            <h3 class="font-bold text-lg mb-1">Ngā Aromatawai</h3>
+                            <p class="text-2xl font-bold text-green-600">${assessmentsCompleted}/1</p>
+                            <p class="text-sm text-gray-600">completed</p>
+                        </div>
+
+                        <div class="bg-purple-50 p-6 rounded-lg border-2 border-purple-200">
+                            <h3 class="font-bold text-lg mb-1">Whakamātau</h3>
+                            <p class="text-2xl font-bold text-purple-600">
+                                ${state.userProgress.interactive?.attempted || 0}
+                            </p>
+                            <p class="text-sm text-gray-600">problems attempted</p>
+                        </div>
+                    </div>
+
+                    <!-- Buttons -->
+                    <div class="grid md:grid-cols-2 gap-6">
+                        
+                        <!-- Lessons -->
+                        <div class="bg-white rounded-lg shadow-md p-6">
+                            <h3 class="text-xl font-bold text-blue-900 mb-4">Ngā Akoranga</h3>
+
+                            <button onclick="goToLesson('lesson1')" 
+                                class="lesson-btn">${lessonStatus("lesson1")}Lesson 1</button>
+
+                            <button onclick="goToLesson('lesson2')" 
+                                class="lesson-btn">${lessonStatus("lesson2")}Lesson 2</button>
+
+                            <button onclick="goToLesson('lesson3')" 
+                                class="lesson-btn">${lessonStatus("lesson3")}Lesson 3</button>
+                        </div>
+
+                        <!-- Other Tools -->
+                        <div class="bg-white rounded-lg shadow-md p-6">
+                            <h3 class="text-xl font-bold text-blue-900 mb-4">Resources</h3>
+
+                            <button onclick="goToAssessment()" 
+                                class="tool-btn bg-green-50 hover:bg-green-100">
+                                Raukura Assessment
+                            </button>
+
+                            <button onclick="goToInteractive()" 
+                                class="tool-btn bg-purple-50 hover:bg-purple-100">
+                                Interactive Practice
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        `;
+        return;
+    }
+
+    /* -----------------------------------------------------
+       LESSONS
+    ----------------------------------------------------- */
+    if (state.currentView.startsWith("lesson")) {
+        const lessons = {
+            lesson1: {
+                title: "Introduction to Base Numbers",
+                content: `
+                    <p class="text-lg">Welcome to Tau Āweko!</p>
+                    <div class="bg-blue-50 p-4 rounded-lg mt-4">
+                        <h3 class="font-bold mb-2">Base Numbers (1–10):</h3>
+                        <ul class="space-y-1">
+                            <li>tahi = 1</li>
+                            <li>rua = 2</li>
+                            <li>toru = 3</li>
+                            <li>whā = 4</li>
+                            <li>rima = 5</li>
+                            <li>ono = 6</li>
+                            <li>whitu = 7</li>
+                            <li>waru = 8</li>
+                            <li>iwa = 9</li>
+                            <li>ngahuru = 10</li>
+                        </ul>
+                    </div>
+                `
+            },
+            lesson2: {
+                title: "Understanding pū - Doubling",
+                content: `
+                    <p class="text-lg">Adding pū doubles a base number.</p>
+                    <div class="bg-green-50 p-4 rounded-lg mt-4">
+                        <ul class="space-y-2">
+                            <li>rima → rimapū = 10</li>
+                            <li>toru → torupū = 6</li>
+                            <li>whā → whāpū = 8</li>
+                        </ul>
+                    </div>
+                `
+            },
+            lesson3: {
+                title: "Understanding tautahi - Plus One",
+                content: `
+                    <p class="text-lg">After pū, we can add tautahi (+1).</p>
+                    <div class="bg-purple-50 p-4 rounded-lg mt-4">
+                        <ul class="space-y-2">
+                            <li>rimapū tautahi = 11</li>
+                            <li>torupū tautahi = 7</li>
+                        </ul>
+                    </div>
+                    <p class="mt-4 text-red-600 font-semibold">Important: tautahi only follows pū.</p>
+                `
+            }
+        };
+
+        const L = lessons[state.currentView];
+
+        app.innerHTML = `
+            <div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+                <div class="max-w-4xl mx-auto">
+
+                    <button onclick="goDashboard()" class="mb-4 text-blue-700 underline">
+                        ← Back to Dashboard
+                    </button>
+
+                    <div class="bg-white rounded-lg shadow-md p-6">
+                        <h2 class="text-2xl font-bold text-blue-900 mb-6">${L.title}</h2>
+                        ${L.content}
+
+                        <button onclick="completeLesson('${state.currentView}')" 
+                            class="mt-6 bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700">
+                            Mark as Complete
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+        `;
+        return;
+    }
+
+    /* -----------------------------------------------------
+       INTERACTIVE PRACTICE
+    ----------------------------------------------------- */
+    if (state.currentView === "interactive") {
+        if (!state.interactiveProblem) generateInteractiveProblem();
+
+        const problem = state.interactiveProblem;
+        const stats = state.userProgress.interactive;
+
+        app.innerHTML = `
+            <div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+                <div class="max-w-3xl mx-auto">
+
+                    <button onclick="goDashboard()" class="mb-4 text-blue-700 underline">
+                        ← Back to Dashboard
+                    </button>
+
+                    <div class="bg-white rounded-lg shadow-md p-6">
+                        <h2 class="text-2xl font-bold text-blue-900 mb-6">Interactive Practice</h2>
+
+                        <div class="bg-white p-6 rounded-lg border-2 border-blue-200">
+                            <p class="text-xl font-semibold mb-4">${problem.question}</p>
+
+                            <input id="interactiveInput" 
+                                class="w-full border px-4 py-2 rounded-lg mb-4"
+                                placeholder="Your answer">
+
+                            <div class="flex gap-3">
+                                <button onclick="checkInteractiveAnswer()" 
+                                    class="bg-blue-900 text-white px-4 py-2 rounded-lg">
+                                    Check Answer
+                                </button>
+                                <button onclick="newInteractiveProblem()" 
+                                    class="bg-gray-600 text-white px-4 py-2 rounded-lg">
+                                    New Problem
+                                </button>
+                            </div>
+
+                            ${state.interactiveFeedback 
+                                ? `<div class="mt-4 p-4 rounded-lg ${state.interactiveFeedback.includes('Correct') ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}">${state.interactiveFeedback}</div>`
+                                : ''
+                            }
+                        </div>
+
+                        <div class="mt-6 bg-blue-50 p-4 rounded-lg">
+                            <h3 class="font-bold mb-2">Your Stats:</h3>
+                            <p>Attempted: ${stats.attempted}</p>
+                            <p>Correct: ${stats.correct}</p>
+                            <p>Accuracy: ${stats.attempted > 0 ? Math.round((stats.correct / stats.attempted) * 100) : 0}%</p>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        `;
+        return;
+    }
+
+    /* -----------------------------------------------------
+       ASSESSMENT — PASSWORD SCREEN
+    ----------------------------------------------------- */
+    if (state.currentView === "assessment_password") {
+        app.innerHTML = `
+            <div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+                <div class="max-w-3xl mx-auto">
+
+                    <button onclick="goDashboard()" class="mb-4 text-blue-700 underline">
+                        ← Back to Dashboard
+                    </button>
+
+                    <div class="bg-white rounded-lg shadow-md p-6 text-center">
+                        <h2 class="text-2xl font-bold text-blue-900 mb-4">Enter Assessment Password</h2>
+                        <p class="text-gray-700 mb-6">Me whakauru i te kupuhuna kia uru</p>
+
+                        <input id="assessmentPassInput"
+                            class="w-full border px-4 py-2 rounded-lg mb-4"
+                            placeholder="Kupuhuna">
+
+                        <button onclick="checkAssessmentPassword()" 
+                            class="w-full bg-blue-900 text-white py-2 rounded-lg">
+                            Tomo (Enter)
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+        `;
+        return;
+    }
+
+    /* -----------------------------------------------------
+       ASSESSMENT — QUESTION VIEW
+    ----------------------------------------------------- */
+    if (state.currentView === "assessment_questions") {
+        const qHTML = state.assessmentQuestions
+            .map((q, i) => {
+                if (q.type === "multiple_choice") {
+                    return `
+                        <div class="bg-white p-4 rounded-lg border-2 border-blue-200">
+                            <p class="font-semibold mb-3">${i+1}. ${q.question}</p>
+                            ${q.options.map(opt => `
+                                <label class="flex items-center space-x-2 cursor-pointer mb-1">
+                                    <input type="radio" 
+                                        name="q${i}" 
+                                        value="${opt}" 
+                                        onchange="setAssessmentAnswer(${i}, '${opt}')">
+                                    <span>${opt}</span>
+                                </label>
+                            `).join("")}
+                        </div>
+                    `;
+                }
+
+                return `
+                    <div class="bg-white p-4 rounded-lg border-2 border-blue-200">
+                        <p class="font-semibold mb-3">${i+1}. ${q.question}</p>
+                        <input 
+                            class="w-full border px-4 py-2 rounded-lg"
+                            onchange="setAssessmentAnswer(${i}, this.value)">
+                    </div>
+                `;
+            })
+            .join("");
+
+        app.innerHTML = `
+            <div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+                <div class="max-w-4xl mx-auto">
+
+                    <button onclick="goDashboard()" class="mb-4 text-blue-700 underline">
+                        ← Back to Dashboard
+                    </button>
+
+                    <div class="bg-white rounded-lg shadow-md p-6">
+                        <h2 class="text-2xl font-bold text-blue-900 mb-4">Raukura Assessment</h2>
+                        <p class="italic text-gray-600 mb-6">He aromatawai tatauranga tēnei</p>
+
+                        ${qHTML}
+
+                        <button onclick="submitAssessment()" 
+                            class="mt-6 bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700">
+                            Tuku (Submit)
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+        `;
+        return;
+    }
 }
+/* ---------------------------------------------------------
+   LOGOUT
+--------------------------------------------------------- */
+window.logout = async function () {
+    const { signOut } = await import("https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js");
+    await signOut(auth);
+    window.location.href = "login.html";
+};
+
+/* ---------------------------------------------------------
+   NAVIGATION HELPERS
+--------------------------------------------------------- */
+window.goDashboard = function () {
+    state.currentView = "dashboard";
+    render();
+};
+
+window.goToLesson = function (lesson) {
+    state.currentView = lesson;
+    render();
+};
+
+window.goToInteractive = function () {
+    state.currentView = "interactive";
+    render();
+};
+
+window.goToAssessment = function () {
+    state.currentView = "assessment_password";
+    render();
+};
+
+/* ---------------------------------------------------------
+   LESSON COMPLETION
+--------------------------------------------------------- */
+window.completeLesson = async function (lesson) {
+    state.userProgress.lessons[lesson] = true;
+    await saveProgress();
+    goDashboard();
+};
+
+/* ---------------------------------------------------------
+   LESSON BADGE
+--------------------------------------------------------- */
+function lessonStatus(lesson) {
+    return state.userProgress.lessons?.[lesson]
+        ? `<span class='text-green-600 font-bold mr-2'>✓</span>`
+        : `<span class='text-gray-400 font-bold mr-2'>○</span>`;
+}
+
+/* ---------------------------------------------------------
+   INTERACTIVE PROBLEM GENERATOR
+--------------------------------------------------------- */
+function generateInteractiveProblem() {
+    const bases = [
+        ["tahi", 1], ["rua", 2], ["toru", 3], ["whā", 4],
+        ["rima", 5], ["ono", 6], ["whitu", 7], ["waru", 8],
+        ["iwa", 9], ["ngahuru", 10]
+    ];
+
+    const random = bases[Math.floor(Math.random() * bases.length)];
+
+    const doubled = random[1] * 2;
+    const tautahi = doubled + 1;
+
+    const format = Math.random() < 0.5 ? "pū" : "tautahi";
+
+    let question, answer;
+
+    if (format === "pū") {
+        question = `He aha te ${random[0]}pū? (Double ${random[0]})`;
+        answer = doubled;
+    } else {
+        question = `He aha te ${random[0]}pū tautahi? (Double +1)`;
+        answer = tautahi;
+    }
+
+    state.interactiveProblem = { question, answer };
+}
+
+/* Check answer */
+window.checkInteractiveAnswer = async function () {
+    const input = document.getElementById("interactiveInput").value.trim();
+    if (!input) return;
+
+    state.userProgress.interactive.attempted++;
+
+    if (Number(input) === state.interactiveProblem.answer) {
+        state.userProgress.interactive.correct++;
+        state.interactiveFeedback = "✅ Correct! Ka rawe!";
+    } else {
+        state.interactiveFeedback = `⚠️ Kāo. The correct answer is ${state.interactiveProblem.answer}.`;
+    }
+
+    await saveProgress();
+    render();
+};
+
+window.newInteractiveProblem = function () {
+    state.interactiveFeedback = "";
+    state.interactiveProblem = null;
+    render();
+};
+
+/* ---------------------------------------------------------
+   ASSESSMENT — PASSWORD CHECK
+--------------------------------------------------------- */
+window.checkAssessmentPassword = function () {
+    const entered = document.getElementById("assessmentPassInput").value.trim();
+    const PASS = "awaeko2025"; // Change if needed
+
+    if (entered === PASS) {
+        generateAssessmentQuestions();
+        state.currentView = "assessment_questions";
+        render();
+    } else {
+        alert("Kāo. Incorrect password.");
+    }
+};
+
+/* ---------------------------------------------------------
+   GENERATE ASSESSMENT QUESTIONS
+--------------------------------------------------------- */
+function generateAssessmentQuestions() {
+    state.assessmentQuestions = [
+        {
+            type: "multiple_choice",
+            question: "What does 'pū' mean?",
+            options: ["Double", "Subtract", "Divide", "Add 10"],
+            answer: "Double"
+        },
+        {
+            type: "multiple_choice",
+            question: "What does 'tautahi' do?",
+            options: ["Adds 1", "Adds 10", "Subtracts 1", "Halves the base"],
+            answer: "Adds 1"
+        },
+        {
+            type: "short",
+            question: "Write the meaning of 'rimapū tautahi'.",
+            answer: "11"
+        },
+        {
+            type: "short",
+            question: "Translate: 'torupū'.",
+            answer: "6"
+        },
+        {
+            type: "multiple_choice",
+            question: "Which can ONLY come after pū?",
+            options: ["tautahi", "ngahuru", "tahi", "rua"],
+            answer: "tautahi"
+        }
+    ];
+
+    state.assessmentAnswers = {};
+}
+
+/* ---------------------------------------------------------
+   RECORD ANSWERS
+--------------------------------------------------------- */
+window.setAssessmentAnswer = function (index, value) {
+    state.assessmentAnswers[index] = value;
+};
+
+/* ---------------------------------------------------------
+   SUBMIT ASSESSMENT
+--------------------------------------------------------- */
+window.submitAssessment = async function () {
+    let correct = 0;
+
+    state.assessmentQuestions.forEach((q, i) => {
+        if (!state.assessmentAnswers[i]) return;
+
+        const user = state.assessmentAnswers[i].toString().trim().toLowerCase();
+        const expected = q.answer.toString().trim().toLowerCase();
+
+        if (user === expected) correct++;
+    });
+
+    const score = Math.round((correct / state.assessmentQuestions.length) * 100);
+
+    // Save to Firestore
+    state.userProgress.assessments["raukura"] = {
+        score,
+        completedAt: new Date().toISOString()
+    };
+    await saveProgress();
+
+    // Move to results view
+    state.currentView = "assessment_results";
+    state.assessmentScore = score;
+    renderAssessmentResults();
+};
+
+/* ---------------------------------------------------------
+   RESULTS SCREEN
+--------------------------------------------------------- */
+function renderAssessmentResults() {
+    const app = document.getElementById("app");
+
+    app.innerHTML = `
+        <div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+            <div class="max-w-3xl mx-auto">
+
+                <button onclick="goDashboard()" class="mb-4 text-blue-700 underline">
+                    ← Back to Dashboard
+                </button>
+
+                <div class="bg-white rounded-lg shadow-md p-6 text-center">
+                    <h2 class="text-3xl font-bold text-blue-900 mb-4">Aromatawai Kua Tūtuki</h2>
+
+                    <p class="text-xl mb-6">Your Score:</p>
+
+                    <p class="text-5xl font-extrabold text-green-600 mb-6">
+                        ${state.assessmentScore}%
+                    </p>
+
+                    <p class="text-gray-600 mb-8">Ka rawe tō mahi!</p>
+
+                    <button onclick="goDashboard()" 
+                        class="bg-blue-900 text-white px-6 py-3 rounded-lg hover:bg-blue-700">
+                        Hoki ki te kāinga
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    `;
+}
+
+/* ---------------------------------------------------------
+   END OF SCRIPT / FORCE FIRST RENDER
+--------------------------------------------------------- */
+render();
 
 </script>
 
