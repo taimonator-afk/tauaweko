@@ -4,156 +4,177 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tau Āweko - Te Whare o Raukura</title>
-
-    <!-- Tailwind -->
     <script src="https://cdn.tailwindcss.com"></script>
 
     <!-- Firebase -->
-    <script type="module" src="firebase-setup.js"></script>
+    <script type="module" src="./firebase-setup.js"></script>
 
     <style>
-        /* Modal overlay */
-        #nameModalOverlay {
-            backdrop-filter: blur(6px);
+        /* Modal background */
+        .modal-bg {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(4px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 50;
         }
     </style>
 </head>
 
-<body class="bg-gradient-to-br from-slate-800 via-blue-900 to-slate-900">
+<body class="bg-gradient-to-br from-slate-800 via-blue-900 to-slate-900 min-h-screen">
 
 <div id="app"></div>
 
-<!-- Name Modal -->
-<div id="nameModalOverlay"
-     class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-
-    <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md text-center">
-        <h2 class="text-2xl font-bold text-blue-900 mb-4">Ko wai koe?</h2>
-        <p class="text-gray-600 mb-6">(What is your name?)</p>
-
-        <input id="displayNameInput"
-               type="text"
-               placeholder="Enter your name"
-               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 mb-4">
-
-        <button id="saveDisplayNameBtn"
-                class="w-full bg-blue-900 hover:bg-blue-800 text-white py-2 rounded-lg font-semibold">
-            Save Name
-        </button>
-    </div>
-
-</div>
-
 <script type="module">
+
 /* ---------------------------------------------------------
    IMPORTS
 --------------------------------------------------------- */
 import {
-    auth,
-    db,
+    auth, db,
     onAuthStateChanged,
-    signOut,
-    doc,
-    getDoc,
-    setDoc,
-    updateDoc
+    doc, getDoc, setDoc, updateDoc
 } from "./firebase-setup.js";
 
 /* ---------------------------------------------------------
    GLOBAL STATE
 --------------------------------------------------------- */
 let state = {
-    firebaseUser: null,       // Firebase auth user object
-    displayName: null,        // Māori name
-    userProgress: {},         // lessons, assessments, interactive stats
-    currentView: 'loading',   // loading → dashboard/other
-    assessmentQuestions: [],
+    firebaseUser: null,       // Firebase auth user
+    displayName: null,        // Māori name (Ko wai koe?)
+    userProgress: {},         // Loaded from Firestore
+    currentView: "loading",   // loading | dashboard | lesson | assessment | interactive
     assessmentAnswers: {},
+    assessmentQuestions: [],
     assessmentUnlocked: false,
     assessmentSubmitted: false,
     interactiveProblem: null,
-    interactiveFeedback: ''
+    interactiveFeedback: ""
 };
 
 /* ---------------------------------------------------------
    FIRESTORE HELPERS
 --------------------------------------------------------- */
-async function loadUserProfile(uid) {
+
+// Load progress from Firestore
+async function loadProgress(uid) {
+    const ref = doc(db, "progress", uid);
+    const snap = await getDoc(ref);
+    if (snap.exists()) {
+        state.userProgress = snap.data();
+    } else {
+        // Initialize empty progress
+        await setDoc(ref, { lessons: {}, assessments: {}, interactive: {attempted:0, correct:0} });
+        state.userProgress = { lessons: {}, assessments: {}, interactive: {attempted:0, correct:0} };
+    }
+}
+
+// Save progress to Firestore
+async function saveProgress() {
+    if (!state.firebaseUser) return;
+    const ref = doc(db, "progress", state.firebaseUser.uid);
+    await setDoc(ref, state.userProgress, { merge: true });
+}
+
+// Load or create display name profile
+async function loadProfile(uid) {
     const ref = doc(db, "profiles", uid);
     const snap = await getDoc(ref);
 
-    if (!snap.exists()) return null;
-    return snap.data();
+    if (snap.exists()) {
+        state.displayName = snap.data().displayName;
+    } else {
+        state.displayName = null;
+    }
 }
 
-async function saveUserProfile(uid, data) {
-    await setDoc(doc(db, "profiles", uid), data, { merge: true });
-}
-
-async function loadUserProgress(uid) {
-    const ref = doc(db, "progress", uid);
-    const snap = await getDoc(ref);
-
-    if (!snap.exists()) return {};
-    return snap.data();
-}
-
-async function saveUserProgress(uid, data) {
-    await setDoc(doc(db, "progress", uid), data, { merge: true });
-}
-
-/* ---------------------------------------------------------
-   HANDLE NAME MODAL
---------------------------------------------------------- */
-function openNameModal() {
-    document.getElementById("nameModalOverlay").classList.remove("hidden");
-}
-
-async function saveDisplayName() {
-    const name = document.getElementById("displayNameInput").value.trim();
-    if (!name) return alert("Please enter your name.");
-
-    await saveUserProfile(state.firebaseUser.uid, { displayName: name });
-
+// Save Māori display name
+async function saveDisplayName(name) {
+    const ref = doc(db, "profiles", state.firebaseUser.uid);
+    await setDoc(ref, { displayName: name }, { merge: true });
     state.displayName = name;
-    document.getElementById("nameModalOverlay").classList.add("hidden");
-
-    // Continue to dashboard
-    state.currentView = "dashboard";
-    render();
 }
 
-document.getElementById("saveDisplayNameBtn").onclick = saveDisplayName;
-
 /* ---------------------------------------------------------
-   AUTH LISTENER — MAIN ENTRY POINT
+   AUTH STATE LISTENER
 --------------------------------------------------------- */
 onAuthStateChanged(auth, async (user) => {
     if (!user) {
-        // If no user, force login page
         window.location.href = "login.html";
         return;
     }
 
     state.firebaseUser = user;
-    state.currentView = "loading";
-    render();
 
-    // Load Name
-    const profile = await loadUserProfile(user.uid);
+    // Load name + progress
+    await loadProfile(user.uid);
+    await loadProgress(user.uid);
 
-    if (!profile || !profile.displayName) {
-        openNameModal();
+    // If missing Māori display name → ask immediately
+    if (!state.displayName) {
+        showDisplayNameModal();
+    } else {
+        state.currentView = "dashboard";
+        render();
+    }
+});
+
+/* ---------------------------------------------------------
+   DISPLAY NAME MODAL
+--------------------------------------------------------- */
+function showDisplayNameModal() {
+    const modal = document.createElement("div");
+    modal.className = "modal-bg";
+    modal.innerHTML = `
+        <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md">
+            <h2 class="text-2xl font-bold text-blue-900 mb-4">Ko wai koe?</h2>
+            <p class="text-gray-700 mb-6">(What is your name?)</p>
+
+            <input id="nameInput" 
+                class="w-full border border-gray-300 rounded-lg px-4 py-2 mb-4"
+                placeholder="Tāurua tō ingoa Māori">
+
+            <button id="saveNameBtn"
+                class="w-full bg-blue-900 text-white py-2 rounded-lg hover:bg-blue-700">
+                Tiaki Ingoa (Save Name)
+            </button>
+        </div>
+    `;
+    document.body.appendChild(modal);
+
+    document.getElementById("saveNameBtn").onclick = async () => {
+        const name = document.getElementById("nameInput").value.trim();
+        if (!name) return alert("Tāurua tō ingoa.");
+
+        await saveDisplayName(name);
+
+        modal.remove();
+        state.currentView = "dashboard";
+        render();
+    };
+}
+
+/* ---------------------------------------------------------
+   START RENDER AFTER AUTH
+--------------------------------------------------------- */
+function render() {
+    const app = document.getElementById("app");
+
+    if (!app) return;
+
+    if (!state.firebaseUser) {
+        app.innerHTML = `<p class="text-white p-6">Loading...</p>`;
         return;
     }
 
-    state.displayName = profile.displayName;
+    // PART 2 (Dashboard, Lessons, Assessment, etc.)
+    // Will be inserted in next message
+}
 
-    // Load Progress
-    state.userProgress = await loadUserProgress(user.uid) || {};
-
-    // Go to dashboard
-    state.currentView = "dashboard";
-    render();
-});
 </script>
+
+</body>
+</html>
