@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Te Whare o Raukura – Tau Āweko</title>
+
+  <!-- Tailwind (optional, for the splash screen styling) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    /* Fade-out transition */
+    .fade-out {
+      opacity: 0;
+      transition: opacity 0.8s ease-out;
+    }
+  </style>
+</head>
+
+<body class="bg-gradient-to-br from-blue-900 to-indigo-800 min-h-screen flex items-center justify-center">
+
+  <!-- Splash screen -->
+  <div id="splash" class="flex flex-col items-center text-white">
+    <img src="./assets/trm_logo.png" alt="TRM Logo" class="w-24 h-24 mb-4" />
+    <h1 class="text-3xl font-extrabold">Te Whare o Raukura</h1>
+    <p class="text-lg opacity-70 mt-2">Tau Āweko</p>
+  </div>
+
+  <script>
+    // Redirect after a short splash
+    setTimeout(() => {
+      const splash = document.getElementById("splash");
+      splash.classList.add("fade-out"); // fade effect
+
+      setTimeout(() => {
+        window.location.href = "login.html";
+      }, 500);
+    }, 900); // 0.9 sec splash screen
+  </script>
+
+</body>
+</html>
