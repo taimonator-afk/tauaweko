@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Teacher Analytics – Te Whare o Raukura</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script type="module" src="./firebase-setup.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body class="bg-gradient-to-br from-blue-900 to-indigo-800 min-h-screen text-white p-6">
+
+<div class="max-w-5xl mx-auto">
+
+  <!-- Header -->
+  <div class="flex justify-between items-center mb-8">
+    <h1 class="text-3xl font-extrabold">Teacher Analytics</h1>
+    <a href="teacher-dashboard.html"
+      class="px-4 py-2 bg-gray-200 text-black rounded hover:bg-white">
+      ← Back to Dashboard
+    </a>
+  </div>
+
+  <!-- Overview Stats -->
+  <div id="overviewStats" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8"></div>
+
+  <!-- Charts -->
+  <div class="bg-white p-6 text-black rounded-xl shadow-xl mb-8">
+    <h2 class="text-xl font-bold mb-4">Lesson Completion Distribution</h2>
+    <canvas id="lessonChart" height="120"></canvas>
+  </div>
+
+  <div class="bg-white p-6 text-black rounded-xl shadow-xl mb-8">
+    <h2 class="text-xl font-bold mb-4">Assessment Score Distribution</h2>
+    <canvas id="assessmentChart" height="120"></canvas>
+  </div>
+
+  <div class="bg-white p-6 text-black rounded-xl shadow-xl mb-8">
+    <h2 class="text-xl font-bold mb-4">Interactive Accuracy</h2>
+    <canvas id="accuracyChart" height="120"></canvas>
+  </div>
+
+  <!-- Class-by-Class Comparison -->
+  <div class="bg-white p-6 text-black rounded-xl shadow-xl">
+    <h2 class="text-xl font-bold mb-4">Class Comparison</h2>
+    <table class="w-full border-collapse">
+      <thead class="bg-gray-100">
+        <tr>
+          <th class="p-2 text-left">Class</th>
+          <th class="p-2 text-center">Students</th>
+          <th class="p-2 text-center">Avg Lessons</th>
+          <th class="p-2 text-center">Avg Assessment</th>
+          <th class="p-2 text-center">Avg Accuracy</th>
+        </tr>
+      </thead>
+      <tbody id="classComparison" class="divide-y"></tbody>
+    </table>
+  </div>
+
+</div>
+
+<!-- SCRIPT -->
+<script type="module">
+
+import {
+  auth, db,
+  onAuthStateChanged,
+  collection, getDocs, doc, getDoc
+} from "./firebase-setup.js";
+
+let teacherUid = null;
+
+onAuthStateChanged(auth, async (user) => {
+  if (!user) return (window.location.href = "login.html");
+  teacherUid = user.uid;
+  await loadAnalytics();
+});
+
+/* -----------------------------------------------
+   LOAD ALL ANALYTICS DATA
+------------------------------------------------ */
+async function loadAnalytics() {
+  const profilesSnap = await getDocs(collection(db, "profiles"));
+  const progressSnap = await getDocs(collection(db, "progress"));
+  const classesSnap = await getDocs(collection(db, "classes"));
+
+  const profiles = {};
+  const progresses = {};
+  const classes = [];
+
+  profilesSnap.forEach(p => profiles[p.id] = p.data());
+  progressSnap.forEach(p => progresses[p.id] = p.data());
+  classesSnap.forEach(c => {
+    if (c.data().ownerUid === teacherUid)
+      classes.push({ id: c.id, ...c.data() });
+  });
+
+  const allStudents = classes.length ? await loadClassMembers(classes) : [];
+
+  renderOverviewStats(allStudents, progresses);
+  renderCharts(allStudents, progresses);
+  renderClassComparison(classes, progresses);
+}
+
+/* -----------------------------------------------
+   LOAD CLASS MEMBERS FOR TEACHER
+------------------------------------------------ */
+async function loadClassMembers(classes) {
+  const students = new Set();
+
+  for (const c of classes) {
+    const snap = await getDocs(collection(db, `classMembers/${c.id}/members`));
+    snap.forEach(m => students.add(m.id));
+  }
+
+  return [...students];
+}
+
+/* -----------------------------------------------
+   OVERVIEW STATS
+------------------------------------------------ */
+function renderOverviewStats(studentUids, progresses) {
+  const total = studentUids.length;
+
+  let totalLessons = 0;
+  let lessonCounts = 0;
+
+  let assessSum = 0;
+  let assessCount = 0;
+
+  let correct = 0;
+  let attempted = 0;
+
+  studentUids.forEach(uid => {
+    const prog = progresses[uid] || {};
+
+    const lessons = prog.lessons ? Object.keys(prog.lessons).length : 0;
+    totalLessons += lessons;
+    lessonCounts += 1;
+
+    if (prog.assessments) {
+      Object.values(prog.assessments).forEach(a => {
+        assessSum += a.score;
+        assessCount += 1;
+      });
+    }
+
+    if (prog.interactive) {
+      correct += prog.interactive.correct || 0;
+      attempted += prog.interactive.attempted || 0;
+    }
+  });
+
+  const avgLessons = lessonCounts ? (totalLessons / lessonCounts).toFixed(1) : "0";
+  const avgAssess = assessCount ? (assessSum / assessCount).toFixed(1) : "0";
+  const accuracy = attempted ? ((correct / attempted) * 100).toFixed(1) : "0";
+
+  document.getElementById("overviewStats").innerHTML = `
+    ${statCard("Total Students", total)}
+    ${statCard("Avg Lessons Completed", avgLessons)}
+    ${statCard("Avg Assessment Score", avgAssess + "%")}
+    ${statCard("Interactive Accuracy", accuracy + "%")}
+  `;
+}
+
+/* -----------------------------------------------
+   STAT CARD COMPONENT
+------------------------------------------------ */
+function statCard(label, value) {
+  return `
+    <div class="bg-white text-black p-6 rounded-xl shadow text-center">
+      <h3 class="text-sm text-gray-600 mb-1">${label}</h3>
+      <div class="text-3xl font-extrabold">${value}</div>
+    </div>
+  `;
+}
+
+/* -----------------------------------------------
+   RENDER CHARTS
+------------------------------------------------ */
+function renderCharts(studentUids, progresses) {
+
+  let lessonDist = [0, 0, 0, 0]; // 0,1,2,3+
+  let assessmentScores = [];
+  let correct = 0, attempted = 0;
+
+  studentUids.forEach(uid => {
+    const prog = progresses[uid] || {};
+
+    // Lesson distribution
+    const count = prog.lessons ? Object.keys(prog.lessons).length : 0;
+    if (count >= 3) lessonDist[3] += 1;
+    else lessonDist[count] += 1;
+
+    // Assessment scores
+    if (prog.assessments) {
+      Object.values(prog.assessments).forEach(a => assessmentScores.push(a.score));
+    }
+
+    // Interactive
+    if (prog.interactive) {
+      correct += prog.interactive.correct || 0;
+      attempted += prog.interactive.attempted || 0;
+    }
+  });
+
+  // Lesson Chart
+  new Chart(document.getElementById("lessonChart"), {
+    type: "bar",
+    data: {
+      labels: ["0 done", "1 done", "2 done", "3 done"],
+      datasets: [{
+        data: lessonDist,
+        backgroundColor: ["#dc2626","#fbbf24","#3b82f6","#16a34a"]
+      }]
+    }
+  });
+
+  // Assessment Chart
+  new Chart(document.getElementById("assessmentChart"), {
+    type: "bar",
+    data: {
+      labels: assessmentScores.map((_, i) => i + 1),
+      datasets: [{
+        data: assessmentScores,
+        backgroundColor: "#3b82f6"
+      }]
+    }
+  });
+
+  // Accuracy Pie
+  new Chart(document.getElementById("accuracyChart"), {
+    type: "pie",
+    data: {
+      labels: ["Correct", "Incorrect"],
+      datasets: [{
+        data: [correct, attempted - correct],
+        backgroundColor: ["#16a34a", "#dc2626"]
+      }]
+    }
+  });
+}
+
+/* -----------------------------------------------
+   CLASS COMPARISON TABLE
+------------------------------------------------ */
+async function renderClassComparison(classes, progresses) {
+  const rows = [];
+
+  for (const c of classes) {
+    const membersSnap = await getDocs(collection(db, `classMembers/${c.id}/members`));
+    const members = [];
+    membersSnap.forEach(m => members.push(m.id));
+
+    let totalLessons = 0;
+    let lessonCount = 0;
+    let assessSum = 0;
+    let assessCount = 0;
+    let correct = 0, attempted = 0;
+
+    members.forEach(uid => {
+      const prog = progresses[uid] || {};
+
+      const lessons = prog.lessons ? Object.keys(prog.lessons).length : 0;
+      totalLessons += lessons;
+      lessonCount += 1;
+
+      if (prog.assessments) {
+        Object.values(prog.assessments).forEach(a => {
+          assessSum += a.score;
+          assessCount += 1;
+        });
+      }
+
+      if (prog.interactive) {
+        correct += prog.interactive.correct || 0;
+        attempted += prog.interactive.attempted || 0;
+      }
+    });
+
+    const avgLessons = lessonCount ? (totalLessons / lessonCount).toFixed(1) : "0";
+    const avgAssess = assessCount ? (assessSum / assessCount).toFixed(1) : "0";
+    const accuracy = attempted ? ((correct / attempted) * 100).toFixed(1) : "0";
+
+    rows.push(`
+      <tr>
+        <td class="p-2">${c.className}</td>
+        <td class="p-2 text-center">${members.length}</td>
+        <td class="p-2 text-center">${avgLessons}</td>
+        <td class="p-2 text-center">${avgAssess}%</td>
+        <td class="p-2 text-center">${accuracy}%</td>
+      </tr>
+    `);
+  }
+
+  document.getElementById("classComparison").innerHTML = rows.join("");
+}
+
+</script>
+
+</body>
+</html>
