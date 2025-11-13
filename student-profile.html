@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Student Profile – Te Whare o Raukura</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script type="module" src="./firebase-setup.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body class="bg-gradient-to-br from-blue-900 to-indigo-800 min-h-screen text-white p-6">
+
+<div class="max-w-4xl mx-auto">
+
+  <!-- Back -->
+  <button onclick="window.history.back()" 
+    class="mb-6 px-4 py-2 bg-gray-200 text-black rounded hover:bg-white">
+    ← Back
+  </button>
+
+  <!-- HEADER -->
+  <h1 class="text-3xl font-extrabold mb-4">Student Profile</h1>
+
+  <!-- PROFILE CARD -->
+  <div id="profileCard" class="bg-white text-black p-6 rounded-xl shadow-xl mb-8"></div>
+
+  <!-- PROGRESS SECTION -->
+  <div class="bg-white text-black p-6 rounded-xl shadow-xl mb-8">
+    <h2 class="text-xl font-bold mb-3">Lesson Progress</h2>
+    <ul id="lessonList" class="list-disc ml-6"></ul>
+  </div>
+
+  <!-- ASSESSMENT SECTION -->
+  <div class="bg-white text-black p-6 rounded-xl shadow-xl mb-8">
+    <h2 class="text-xl font-bold mb-3">Assessments</h2>
+    <canvas id="assessmentChart" height="120"></canvas>
+    <ul id="assessmentList" class="list-disc ml-6 mt-4"></ul>
+  </div>
+
+  <!-- INTERACTIVE SECTION -->
+  <div class="bg-white text-black p-6 rounded-xl shadow-xl mb-8">
+    <h2 class="text-xl font-bold mb-3">Interactive Practice</h2>
+    <canvas id="interactiveChart" height="120"></canvas>
+  </div>
+
+  <!-- PDF EXPORT -->
+  <button id="exportPdf"
+    class="mt-4 bg-blue-900 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+    Download PDF Report
+  </button>
+
+</div>
+
+<!-- SCRIPT -->
+<script type="module">
+
+import {
+  auth, db,
+  onAuthStateChanged, doc, getDoc, collection, getDocs
+} from "./firebase-setup.js";
+
+/* ---------------------------------------------
+   GET UID FROM URL
+--------------------------------------------- */
+const params = new URLSearchParams(window.location.search);
+const uid = params.get("uid");
+
+/* ---------------------------------------------
+   LOAD PROFILE + PROGRESS + CLASSES
+--------------------------------------------- */
+let profile, progress, studentClasses;
+
+async function loadAll() {
+
+  const profileRef = doc(db, "profiles", uid);
+  const progressRef = doc(db, "progress", uid);
+
+  const profileSnap = await getDoc(profileRef);
+  const progressSnap = await getDoc(progressRef);
+
+  profile = profileSnap.data() || {};
+  progress = progressSnap.data() || { lessons: {}, interactive: {}, assessments: {} };
+
+  // Load classes
+  studentClasses = [];
+  const classesSnap = await getDocs(collection(db, "classes"));
+  for (const c of classesSnap.docs) {
+    const classId = c.id;
+    const memberDoc = await getDoc(doc(db, `classMembers/${classId}/members`, uid));
+    if (memberDoc.exists()) {
+      studentClasses.push({
+        className: c.data().className,
+        classCode: c.data().classCode
+      });
+    }
+  }
+
+  renderProfile();
+  renderLessons();
+  renderAssessments();
+  renderInteractive();
+}
+
+/* ---------------------------------------------
+   RENDER PROFILE INFO
+--------------------------------------------- */
+function renderProfile() {
+  document.getElementById("profileCard").innerHTML = `
+    <h2 class="text-2xl font-bold mb-3">${profile.displayName || "(No Name)"}</h2>
+    <p class="text-gray-700 mb-2"><strong>Email:</strong> ${profile.email}</p>
+    <p class="text-gray-700 mb-2"><strong>Organisation:</strong> Te Whare o Raukura</p>
+    <p class="text-gray-700 mb-2"><strong>Last Login:</strong> ${profile.lastLogin}</p>
+    <p class="text-gray-700 mb-2"><strong>Classes:</strong> 
+      ${studentClasses.map(c => c.className).join(", ") || "(No class)"}
+    </p>
+  `;
+}
+
+/* ---------------------------------------------
+   RENDER LESSONS
+--------------------------------------------- */
+function renderLessons() {
+  const ul = document.getElementById("lessonList");
+  const lessons = progress.lessons || {};
+
+  ul.innerHTML = Object.keys(lessons).length
+    ? Object.keys(lessons).map(l =>
+        `<li> ${l} – Completed</li>`
+      ).join("")
+    : "<li>No lessons completed yet.</li>";
+}
+
+/* ---------------------------------------------
+   RENDER ASSESSMENTS
+--------------------------------------------- */
+function renderAssessments() {
+  const list = document.getElementById("assessmentList");
+  const chartCanvas = document.getElementById("assessmentChart");
+
+  const dataArray = [];
+
+  if (progress.assessments) {
+    Object.entries(progress.assessments).forEach(([name, val]) => {
+      dataArray.push({
+        label: name,
+        score: val.score,
+        date: val.completedAt
+      });
+    });
+  }
+
+  // LIST
+  list.innerHTML = dataArray.length
+    ? dataArray.map(a => `<li>${a.label}: ${a.score}% (${a.date})</li>`).join("")
+    : "<li>No assessments yet.</li>";
+
+  // CHART
+  if (dataArray.length) {
+    new Chart(chartCanvas, {
+      type: "line",
+      data: {
+        labels: dataArray.map(a => a.date),
+        datasets: [{
+          label: "Assessment Scores",
+          data: dataArray.map(a => a.score),
+          borderColor: "#1e3a8a",
+          backgroundColor: "rgba(30,58,138,0.3)"
+        }]
+      }
+    });
+  }
+}
+
+/* ---------------------------------------------
+   RENDER INTERACTIVE PRACTICE
+--------------------------------------------- */
+function renderInteractive() {
+  const data = progress.interactive || { correct: 0, attempted: 0 };
+
+  const canvas = document.getElementById("interactiveChart");
+  new Chart(canvas, {
+    type: "pie",
+    data: {
+      labels: ["Correct", "Incorrect"],
+      datasets: [{
+        data: [
+          data.correct || 0,
+          (data.attempted || 0) - (data.correct || 0)
+        ],
+        backgroundColor: ["#16a34a", "#dc2626"]
+      }]
+    }
+  });
+}
+
+/* ---------------------------------------------
+   INIT
+--------------------------------------------- */
+loadAll();
+
+/* ---------------------------------------------
+   EXPORT PDF (connected in Phase 4)
+--------------------------------------------- */
+document.getElementById("exportPdf").onclick = () => {
+  alert("PDF export coming in Message 4!");
+};
+
+</script>
+
+</body>
+</html>
