@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Classes – Te Whare o Raukura</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script type="module" src="./firebase-setup.js"></script>
+</head>
+
+<body class="bg-gradient-to-br from-blue-900 to-indigo-800 min-h-screen p-6 text-white">
+
+<div class="max-w-4xl mx-auto">
+
+  <!-- Header -->
+  <div class="flex justify-between items-center mb-8">
+    <h1 class="text-3xl font-extrabold">My Classes</h1>
+    <a href="teacher-dashboard.html"
+      class="px-4 py-2 bg-gray-200 text-black rounded-lg hover:bg-white">
+      ← Back to Dashboard
+    </a>
+  </div>
+
+  <!-- CREATE CLASS CARD -->
+  <div class="bg-white text-black p-6 rounded-xl mb-8">
+    <h2 class="text-xl font-bold mb-4">Create new class</h2>
+
+    <input id="classNameInput"
+      class="w-full border rounded-lg px-3 py-2 mb-4"
+      placeholder="Class Name (e.g. 10 Tikanga)">
+
+    <button id="createClassBtn"
+      class="bg-blue-900 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+      Create Class
+    </button>
+  </div>
+
+  <!-- LIST OF CLASSES -->
+  <div class="bg-white text-black p-6 rounded-xl">
+    <h2 class="text-xl font-bold mb-4">Your Classes</h2>
+
+    <div id="classList" class="space-y-4"></div>
+  </div>
+</div>
+
+
+<!-- SCRIPT -->
+<script type="module">
+import {
+  auth, db,
+  onAuthStateChanged, signOut,
+  collection, getDocs, addDoc, doc, getDoc
+} from "./firebase-setup.js";
+
+/* ---------------------------------------------
+   AUTH GUARD
+--------------------------------------------- */
+onAuthStateChanged(auth, async (user) => {
+  if (!user) { window.location.href = "login.html"; return; }
+
+  await loadClasses(user.uid);
+
+  document.getElementById("createClassBtn").onclick = () =>
+    createClass(user.uid);
+});
+
+/* ---------------------------------------------
+   GENERATE CLASS CODE
+--------------------------------------------- */
+function generateCode() {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let code = "";
+  for (let i = 0; i < 5; i++)
+    code += chars[Math.floor(Math.random() * chars.length)];
+  return code;
+}
+
+/* ---------------------------------------------
+   CREATE CLASS
+--------------------------------------------- */
+async function createClass(ownerUid) {
+  const name = document.getElementById("classNameInput").value.trim();
+  if (!name) return alert("Enter a class name.");
+
+  const classCode = generateCode();
+
+  await addDoc(collection(db, "classes"), {
+    className: name,
+    classCode,
+    ownerUid,
+    createdAt: new Date().toISOString()
+  });
+
+  document.getElementById("classNameInput").value = "";
+  await loadClasses(ownerUid);
+}
+
+/* ---------------------------------------------
+   LOAD CLASSES BELONGING TO THIS TEACHER
+--------------------------------------------- */
+async function loadClasses(ownerUid) {
+  const snap = await getDocs(collection(db, "classes"));
+  const list = document.getElementById("classList");
+  list.innerHTML = "";
+
+  snap.forEach(async (c) => {
+    if (c.data().ownerUid !== ownerUid) return;
+
+    const classId = c.id;
+    const data = c.data();
+
+    // get list of members
+    const membersSnap = await getDocs(collection(db, `classMembers/${classId}/members`));
+    const students = [];
+    membersSnap.forEach(m => students.push(m.data()));
+
+    const studentsHTML = students.length
+      ? students.map(s => `<li>${s.displayName || "(No Name)"}</li>`).join("")
+      : "<li class='text-gray-600'>No students yet.</li>";
+
+    list.innerHTML += `
+      <div class="border rounded-lg p-4">
+        <div class="flex justify-between">
+          <div>
+            <h3 class="text-lg font-bold">${data.className}</h3>
+            <p class="text-gray-600">Code: <span class="font-mono">${data.classCode}</span></p>
+          </div>
+          <button class="px-3 py-1 bg-blue-900 text-white rounded" 
+            onclick="navigator.clipboard.writeText('${data.classCode}')">
+            Copy Code
+          </button>
+        </div>
+
+        <h4 class="font-semibold mt-3 mb-1">Students:</h4>
+        <ul class="list-disc ml-6">
+          ${studentsHTML}
+        </ul>
+      </div>
+    `;
+  });
+}
+
+</script>
+
+</body>
+</html>
