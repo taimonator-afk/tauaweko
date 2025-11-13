@@ -106,6 +106,16 @@ onAuthStateChanged(auth, async (user) => {
         window.location.href = "login.html";
         return;
     }
+async function checkClassMembership(uid) {
+  // Find all classes
+  const classesSnap = await getDocs(collection(db, "classes"));
+  for (const c of classesSnap.docs) {
+    const classId = c.id;
+    const memberDoc = await getDoc(doc(db, `classMembers/${classId}/members`, uid));
+    if (memberDoc.exists()) return true;
+  }
+  return false;
+}
 
     state.firebaseUser = user;
 
@@ -156,6 +166,50 @@ function showDisplayNameModal() {
         render();
     };
 }
+async function showClassJoinModal(uid) {
+  const modal = document.createElement("div");
+  modal.className = "modal-bg";
+  modal.innerHTML = `
+    <div class="bg-white p-8 rounded-xl shadow-xl w-full max-w-md">
+      <h2 class="text-2xl font-bold text-blue-900 mb-2">Enter Class Code</h2>
+      <p class="text-gray-700 mb-6">Tāurua te waehere akomanga</p>
+
+      <input id="classCodeInput" 
+        class="w-full border px-4 py-2 rounded-lg mb-4" 
+        placeholder="ABC12">
+
+      <button id="joinClassBtn"
+        class="w-full bg-blue-900 text-white py-2 rounded-lg hover:bg-blue-700">
+        Join Class
+      </button>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  document.getElementById("joinClassBtn").onclick = async () => {
+    const code = document.getElementById("classCodeInput").value.trim().toUpperCase();
+
+    const classesSnap = await getDocs(collection(db, "classes"));
+
+    let foundClass = null;
+    classesSnap.forEach(c => {
+      if (c.data().classCode === code) foundClass = { id: c.id, ...c.data() };
+    });
+
+    if (!foundClass) return alert("Kāo. Incorrect class code.");
+
+    // Add student to classMembers
+    await setDoc(doc(db, `classMembers/${foundClass.id}/members`, uid), {
+      uid,
+      displayName: state.displayName,
+      joinedAt: new Date().toISOString()
+    });
+
+    modal.remove();
+    state.currentView = "dashboard";
+    render();
+  };
+}
 
 /* ---------------------------------------------------------
    START RENDER AFTER AUTH
@@ -169,6 +223,12 @@ function render() {
         app.innerHTML = `<p class="text-white p-6">Loading...</p>`;
         return;
     }
+const isStudent = profile.userType === "student";
+
+if (isStudent) {
+  const hasClass = await checkClassMembership(user.uid);
+  if (!hasClass) return showClassJoinModal(user.uid);
+}
 
     /* ---------------------------------------------------------
    RENDER FUNCTION (MAIN UI)
