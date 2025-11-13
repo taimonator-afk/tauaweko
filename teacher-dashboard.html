@@ -132,7 +132,13 @@
     function renderTable(rows) {
       studentRows.innerHTML = rows.map(r => `
         <tr>
-          <td class="p-2 font-semibold">${r.name}</td>
+        <td class="p-2 font-semibold">
+  <a href="student-profile.html?uid=${r.uid}" 
+     class="text-blue-700 underline hover:text-blue-500">
+     ${r.name}
+  </a>
+</td>
+
           <td class="p-2 text-sm text-gray-700">${formatEmail(r.email)}</td>
 
           <td class="p-2 text-center">
