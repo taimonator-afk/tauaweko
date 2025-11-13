@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Te Whare o Raukura – Login</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script type="module" src="./firebase-setup.js"></script>
+</head>
+
+<body class="bg-gradient-to-br from-blue-900 to-indigo-800 min-h-screen flex items-center justify-center">
+
+<div class="bg-white p-8 rounded-lg shadow-xl w-full max-w-md">
+
+  <!-- Header -->
+  <h1 class="text-3xl font-extrabold text-center text-blue-900 mb-2">
+    Te Whare o Raukura
+  </h1>
+
+  <h2 class="text-md font-semibold text-center text-gray-700 mb-6">
+    Tau Āweko – Login
+  </h2>
+
+  <!-- USER TYPE SELECTOR -->
+  <label class="block mb-2 font-semibold text-gray-700">Are you a:</label>
+
+  <div class="flex items-center justify-between mb-6">
+
+    <label class="flex items-center space-x-2 cursor-pointer">
+      <input type="radio" name="userType" value="student" checked>
+      <span>Student</span>
+    </label>
+
+    <label class="flex items-center space-x-2 cursor-pointer">
+      <input type="radio" name="userType" value="teacher">
+      <span>Teacher</span>
+    </label>
+  </div>
+
+  <!-- GOOGLE LOGIN -->
+  <button id="googleLogin"
+    class="w-full bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg mb-4">
+    Continue with Google
+  </button>
+
+  <hr class="my-4">
+
+  <!-- Email + Password -->
+  <input id="email" class="w-full border rounded-lg px-3 py-2 mb-3" placeholder="Email">
+  <input id="password" type="password" class="w-full border rounded-lg px-3 py-2 mb-4" placeholder="Password">
+
+  <!-- Buttons -->
+  <button id="emailLogin" 
+    class="w-full bg-blue-900 hover:bg-blue-800 text-white py-2 rounded-lg mb-3">
+    Login
+  </button>
+
+  <button id="emailSignup" 
+    class="w-full bg-green-700 hover:bg-green-600 text-white py-2 rounded-lg mb-3">
+    Create Account
+  </button>
+
+  <button id="resetPassword" 
+    class="w-full text-blue-600 text-sm underline">
+    Forgot your password?
+  </button>
+
+</div>
+
+<!-- SCRIPT -->
+<script type="module">
+
+import {
+  auth, db,
+  GoogleAuthProvider, signInWithPopup,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
+  doc, setDoc
+} from "./firebase-setup.js";
+
+function getUserType() {
+  return document.querySelector('input[name="userType"]:checked').value;
+}
+
+async function saveUserProfile(user, userType) {
+  await setDoc(doc(db, "profiles", user.uid), {
+    email: user.email,
+    userType,
+    organisation: "Te Whare o Raukura",
+    lastLogin: new Date().toISOString()
+  }, { merge: true });
+}
+
+function redirectUser(userType) {
+  if (userType === "teacher") {
+    window.location.href = "teacher-dashboard.html";
+  } else {
+    window.location.href = "tau-aweko.html";
+  }
+}
+
+/* ---------------------------
+   GOOGLE LOGIN
+--------------------------- */
+document.getElementById("googleLogin").onclick = async () => {
+  const provider = new GoogleAuthProvider();
+  const result = await signInWithPopup(auth, provider);
+
+  const userType = getUserType();
+  await saveUserProfile(result.user, userType);
+  redirectUser(userType);
+};
+
+/* ---------------------------
+   EMAIL LOGIN
+--------------------------- */
+document.getElementById("emailLogin").onclick = async () => {
+  const email = document.getElementById("email").value;
+  const pass = document.getElementById("password").value;
+
+  const result = await signInWithEmailAndPassword(auth, email, pass);
+
+  const userType = getUserType();
+  await saveUserProfile(result.user, userType);
+  redirectUser(userType);
+};
+
+/* ---------------------------
+   SIGNUP
+--------------------------- */
+document.getElementById("emailSignup").onclick = async () => {
+  const email = document.getElementById("email").value;
+  const pass = document.getElementById("password").value;
+
+  const result = await createUserWithEmailAndPassword(auth, email, pass);
+
+  const userType = getUserType();
+  await saveUserProfile(result.user, userType);
+  redirectUser(userType);
+};
+
+/* ---------------------------
+   RESET PASSWORD
+--------------------------- */
+document.getElementById("resetPassword").onclick = async () => {
+  const email = document.getElementById("email").value;
+  if (!email) return alert("Enter your email first.");
+
+  await sendPasswordResetEmail(auth, email);
+  alert("Password reset email sent.");
+};
+
+</script>
+
+</body>
+</html>
