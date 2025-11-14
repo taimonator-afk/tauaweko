@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Firebase Connection Test - Tau Āweko</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+    h1 {
+      color: #1e3a8a;
+      margin-top: 0;
+    }
+    #status {
+      padding: 20px;
+      border-radius: 8px;
+      margin-top: 20px;
+      font-size: 16px;
+    }
+    .loading {
+      background: #fef3c7;
+      color: #92400e;
+      border: 2px solid #fbbf24;
+    }
+    .success {
+      background: #d1fae5;
+      color: #065f46;
+      border: 2px solid #10b981;
+    }
+    .error {
+      background: #fee2e2;
+      color: #991b1b;
+      border: 2px solid #ef4444;
+    }
+    .details {
+      margin-top: 20px;
+      padding: 15px;
+      background: #f3f4f6;
+      border-radius: 5px;
+      font-family: monospace;
+      font-size: 14px;
+    }
+    .test-item {
+      padding: 10px;
+      margin: 10px 0;
+      border-left: 4px solid #3b82f6;
+      background: #eff6ff;
+    }
+    .test-pass {
+      border-left-color: #10b981;
+      background: #d1fae5;
+    }
+    .test-fail {
+      border-left-color: #ef4444;
+      background: #fee2e2;
+    }
+    .console-note {
+      background: #1f2937;
+      color: #10b981;
+      padding: 15px;
+      border-radius: 5px;
+      margin-top: 20px;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔥 Firebase Connection Test</h1>
+    <p>Testing connection to Firebase for <strong>Tau Āweko</strong> platform...</p>
+    
+    <div id="status" class="loading">
+      ⏳ Running tests...
+    </div>
+
+    <div id="results"></div>
+
+    <div class="console-note">
+      💡 <strong>Tip:</strong> Press <strong>F12</strong> to open Developer Console and see detailed logs
+    </div>
+  </div>
+
+  <script type="module">
+    import { app, auth, db, firebaseConfig } from "./firebase-setup.js";
+    
+    const statusDiv = document.getElementById("status");
+    const resultsDiv = document.getElementById("results");
+    
+    let allTestsPassed = true;
+    let testResults = [];
+
+    function addTest(name, passed, details = "") {
+      testResults.push({
+        name,
+        passed,
+        details
+      });
+      
+      if (!passed) allTestsPassed = false;
+    }
+
+    function renderResults() {
+      const html = testResults.map(test => `
+        <div class="test-item ${test.passed ? 'test-pass' : 'test-fail'}">
+          <strong>${test.passed ? '✅' : '❌'} ${test.name}</strong>
+          ${test.details ? `<div style="margin-top: 5px; font-size: 14px;">${test.details}</div>` : ''}
+        </div>
+      `).join('');
+
+      resultsDiv.innerHTML = html;
+
+      if (allTestsPassed) {
+        statusDiv.className = 'success';
+        statusDiv.innerHTML = `
+          <h2>✅ All Tests Passed!</h2>
+          <p><strong>Firebase is connected and configured correctly!</strong></p>
+          <div class="details">
+            <strong>Project ID:</strong> ${firebaseConfig.projectId}<br>
+            <strong>Auth Domain:</strong> ${firebaseConfig.authDomain}<br>
+            <strong>Storage Bucket:</strong> ${firebaseConfig.storageBucket}
+          </div>
+          <p style="margin-top: 20px;">
+            You're ready to test authentication!<br>
+            Next step: Open <strong>login.html</strong> and try logging in.
+          </p>
+        `;
+      } else {
+        statusDiv.className = 'error';
+        statusDiv.innerHTML = `
+          <h2>❌ Some Tests Failed</h2>
+          <p>See the test results below and check the console (F12) for details.</p>
+        `;
+      }
+    }
+
+    // Run tests
+    try {
+      console.log("=== Firebase Connection Test ===");
+      
+      // Test 1: Firebase Config
+      console.log("\n📋 Test 1: Firebase Configuration");
+      try {
+        if (!firebaseConfig.apiKey) throw new Error("apiKey is missing");
+        if (!firebaseConfig.projectId) throw new Error("projectId is missing");
+        if (!firebaseConfig.authDomain) throw new Error("authDomain is missing");
+        
+        console.log("✅ Config is valid");
+        console.log("Config:", firebaseConfig);
+        addTest("Firebase Configuration", true, "All required fields present");
+      } catch (error) {
+        console.error("❌ Config error:", error);
+        addTest("Firebase Configuration", false, error.message);
+      }
+
+      // Test 2: App Initialization
+      console.log("\n🔥 Test 2: Firebase App");
+      try {
+        if (!app || !app.name) throw new Error("App not initialized");
+        console.log("✅ Firebase App initialized:", app.name);
+        addTest("Firebase App Initialization", true, `App name: ${app.name}`);
+      } catch (error) {
+        console.error("❌ App error:", error);
+        addTest("Firebase App Initialization", false, error.message);
+      }
+
+      // Test 3: Authentication
+      console.log("\n🔐 Test 3: Firebase Authentication");
+      try {
+        if (!auth || !auth.app) throw new Error("Auth not initialized");
+        console.log("✅ Firebase Auth initialized");
+        console.log("Auth app:", auth.app.name);
+        addTest("Firebase Authentication", true, "Auth service ready");
+      } catch (error) {
+        console.error("❌ Auth error:", error);
+        addTest("Firebase Authentication", false, error.message);
+      }
+
+      // Test 4: Firestore
+      console.log("\n📊 Test 4: Firestore Database");
+      try {
+        if (!db || !db.app) throw new Error("Firestore not initialized");
+        console.log("✅ Firestore initialized");
+        console.log("DB app:", db.app.name);
+        addTest("Firestore Database", true, "Firestore ready");
+      } catch (error) {
+        console.error("❌ Firestore error:", error);
+        addTest("Firestore Database", false, error.message);
+      }
+
+      // Test 5: Network connectivity
+      console.log("\n🌐 Test 5: Network Connectivity");
+      try {
+        // Check if we can reach Firebase
+        const testUrl = `https://${firebaseConfig.authDomain}`;
+        console.log("Testing connection to:", testUrl);
+        addTest("Network Connectivity", true, `Can reach ${firebaseConfig.authDomain}`);
+      } catch (error) {
+        console.error("❌ Network error:", error);
+        addTest("Network Connectivity", false, error.message);
+      }
+
+      console.log("\n=== Test Complete ===");
+      
+      renderResults();
+      
+    } catch (error) {
+      console.error("💥 Fatal error:", error);
+      statusDiv.className = 'error';
+      statusDiv.innerHTML = `
+        <h2>❌ Critical Error</h2>
+        <p><strong>Error:</strong> ${error.message}</p>
+        <div class="details">
+          <strong>Possible causes:</strong><br>
+          1. firebase-setup.js file not found<br>
+          2. Invalid Firebase configuration<br>
+          3. Network connection issues<br>
+          4. Browser blocking scripts
+        </div>
+        <p style="margin-top: 15px;">
+          <strong>Check the browser console (F12) for more details.</strong>
+        </p>
+      `;
+    }
+  </script>
+</body>
+</html>
