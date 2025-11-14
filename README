@@ -1,32 +1,326 @@
-Rangitāmiro – Claude Artifact Prototype Part of the Te Reo Makitaunu (TRM) Programme
+# Tau Āweko - Te Whare o Raukura
 
-🌿 Overview Rangitāmiro is a bilingual (Te Reo Māori + English) interactive resource created within Claude AI’s Artifact system, adapted for the Te Reo Makitaunu (TRM) learning ecosystem. It is designed to demonstrate AI-assisted presentation and interactivity while maintaining TRM’s kaupapa, visual style, and pedagogical structure.
+<div align="center">
 
-This build has been exported as a .tsx file from Claude and can be deployed as a static HTML app for use within Systeme.io, GitHub Pages, or other TRM-approved learning environments.
+![Te Whare o Raukura](assets/trm_logo.png)
 
-🧩 Features 🪶 Bilingual interface (Te Reo Māori + English) 💡 Built with TypeScript + React (.tsx) 🎨 TRM-styled visual presentation (fonts, colours, and icons) 📱 Responsive layout for desktop and mobile 🔗 Easily deployable on GitHub Pages or within Systeme.io iframe blocks 🧠 Aligned to TRM Reanga principles and kaupapa-based design standards 🔒 Licensed under the Te Reo Makitaunu proprietary framework
+**A bilingual educational platform for learning Tau Āweko (Māori numeracy system)**
 
-⚙️ Installation & Hosting
+[Live Demo](#) | [Documentation](#features) | [Contributing](#contributing)
 
-Option 1 – GitHub Pages (recommended)
+</div>
 
-Create a new public repository on GitHub.
+---
 
-Upload all exported files (index.html, /assets, or compiled /dist folder).
+## 📖 About
 
-Go to Settings → Pages → Source → main branch → /root → Save.
+**Tau Āweko** is a web-based learning platform developed for **Te Whare o Raukura** that teaches students the traditional Māori numeracy system. The platform features:
 
-Your project will be live at:
+- 🎓 **Interactive lessons** on base numbers, doubling (pū), and addition (tautahi)
+- 📝 **Assessments** with automatic grading and progress tracking
+- 👨‍🏫 **Teacher dashboard** with class management and analytics
+- 📊 **Real-time progress tracking** and detailed student reports
+- 🌐 **Bilingual interface** (te reo Māori / English)
 
-https://<your-username>.github.io/<repo-name>/
-Option 2 – Systeme.io
+---
 
-Upload the exported HTML directly into a Systeme.io custom code block.
-Ensure all relative asset paths remain consistent.
-Test responsiveness and interactivity inside Systeme.io preview.
-📜 Notes
+## ✨ Features
 
-The original .tsx file may be compiled using Vite or React build tools before deployment.
-For best compatibility, re-export from Claude as a single self-contained HTML file.
-This resource remains under TRM proprietary licence and may not be distributed outside approved TRM systems.
-© Te Reo Makitaunu | Developed under the direction of Te Rangikaiata (Taimona Panapa) He maramara nō te pakanga ki Pukekāhu, he mōrehurehu nō te pakarūtanga mai o Tarāwera.
+### For Students
+- **Interactive Learning Path**: 3 progressive lessons covering numbers 1-100
+- **Practice Exercises**: Real-time feedback on Tau Āweko problems
+- **Assessments**: Password-protected evaluations with instant scoring
+- **Progress Tracking**: Visual dashboard showing lesson completion and accuracy
+- **Class System**: Join classes with unique codes
+
+### For Teachers
+- **Class Management**: Create and manage multiple classes with unique codes
+- **Student Dashboard**: View all students with color-coded progress badges
+- **Analytics**: Comprehensive charts and statistics across all classes
+- **Individual Reports**: Deep-dive into each student's performance
+- **PDF Export**: Generate bilingual student reports with embedded charts
+- **CSV Export**: Download student data for external analysis
+
+---
+
+## 🚀 Technology Stack
+
+### Frontend
+- **HTML5** - Semantic markup with accessibility features
+- **Tailwind CSS** - Utility-first styling via CDN
+- **Vanilla JavaScript** - ES6 modules, no framework dependencies
+- **Chart.js** - Interactive data visualizations
+- **jsPDF + autoTable** - Client-side PDF generation
+
+### Backend
+- **Firebase Authentication** - Google OAuth + Email/Password
+- **Cloud Firestore** - Real-time NoSQL database
+- **GitHub Pages** - Static site hosting
+
+---
+
+## 📁 Project Structure
+
+```
+tau-aweko/
+├── index.html                    # Splash screen & redirect
+├── login.html                    # Authentication page
+├── tau-aweko.html               # Student application
+├── teacher-dashboard.html       # Teacher main dashboard
+├── teacher-classes.html         # Class management interface
+├── teacher-analytics.html       # Analytics & reporting
+├── student-profile.html         # Individual student deep-dive
+├── firebase-setup.js            # Firebase configuration & exports
+├── student-report.js            # PDF report generation
+├── .nojekyll                    # GitHub Pages config
+├── README.md                    # This file
+├── DEPLOYMENT-CHECKLIST.md      # Deployment guide
+│
+├── assets/
+│   ├── trm_logo.png            # TRM branding
+│   └── favicon.ico             # Browser icon
+│
+└── activities/
+    └── [interactive tools]      # Optional: Custom HTML activities
+```
+
+---
+
+## 🔧 Installation & Setup
+
+### Prerequisites
+- GitHub account
+- Firebase account
+- Modern web browser (Chrome, Firefox, Safari, Edge)
+
+### Quick Start
+
+1. **Clone this repository:**
+   ```bash
+   git clone https://github.com/USERNAME/tau-aweko.git
+   cd tau-aweko
+   ```
+
+2. **Configure Firebase:**
+   - Create a Firebase project at https://console.firebase.google.com
+   - Enable Authentication (Email/Password + Google)
+   - Create a Firestore database
+   - Copy your Firebase config to `firebase-setup.js`
+
+3. **Deploy to GitHub Pages:**
+   - Push to GitHub
+   - Enable Pages in repository settings
+   - Site will be live at: `https://USERNAME.github.io/tau-aweko/`
+
+4. **Configure Firebase domains:**
+   - Add `USERNAME.github.io` to Firebase authorized domains
+
+For detailed instructions, see [DEPLOYMENT-CHECKLIST.md](DEPLOYMENT-CHECKLIST.md)
+
+---
+
+## 🎯 Usage
+
+### For Teachers
+
+1. **Create an account:**
+   - Visit the site and select "Teacher"
+   - Login with Google or email
+
+2. **Create a class:**
+   - Navigate to "Manage Classes"
+   - Create a new class and copy the class code
+   - Share the code with students
+
+3. **Monitor progress:**
+   - View all students in the dashboard
+   - Check analytics for class performance
+   - Generate individual PDF reports
+
+### For Students
+
+1. **Create an account:**
+   - Visit the site and select "Student"
+   - Login with Google or email
+   - Enter your Māori name when prompted
+
+2. **Join a class:**
+   - Enter the class code provided by your teacher
+
+3. **Learn Tau Āweko:**
+   - Complete 3 progressive lessons
+   - Practice with interactive exercises
+   - Take the assessment (password required)
+
+---
+
+## 📊 Data Structure
+
+### Firestore Collections
+
+**profiles/**
+```javascript
+{
+  uid: "user123",
+  displayName: "Hemi Pōmare",
+  email: "hemi@example.com",
+  userType: "student" | "teacher",
+  organisation: "Te Whare o Raukura",
+  lastLogin: "2025-01-15T10:30:00.000Z"
+}
+```
+
+**progress/**
+```javascript
+{
+  uid: "user123",
+  lessons: {
+    lesson1: true,
+    lesson2: true,
+    lesson3: false
+  },
+  assessments: {
+    raukura: {
+      score: 85,
+      completedAt: "2025-01-15T11:00:00.000Z"
+    }
+  },
+  interactive: {
+    attempted: 25,
+    correct: 20
+  }
+}
+```
+
+**classes/**
+```javascript
+{
+  classId: "class123",
+  className: "10 Tikanga",
+  classCode: "ABC12",
+  ownerUid: "teacher123",
+  createdAt: "2025-01-10T09:00:00.000Z"
+}
+```
+
+**classMembers/{classId}/members/**
+```javascript
+{
+  uid: "student123",
+  displayName: "Hemi Pōmare",
+  joinedAt: "2025-01-11T10:00:00.000Z"
+}
+```
+
+---
+
+## 🔐 Security
+
+### Firebase Security Rules
+
+The platform uses Firebase Security Rules to protect user data:
+
+- Users can only read/write their own profile and progress
+- Teachers can create classes and manage their own classes
+- Students can join classes and view class information
+- All operations require authentication
+
+For the full security rules configuration, see [DEPLOYMENT-CHECKLIST.md](DEPLOYMENT-CHECKLIST.md#firestore-security-rules)
+
+---
+
+## 🌐 Browser Support
+
+- ✅ Chrome 90+
+- ✅ Firefox 88+
+- ✅ Safari 14+
+- ✅ Edge 90+
+
+**Note:** Modern ES6 module support required
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Here's how you can help:
+
+1. **Report bugs:** Open an issue describing the problem
+2. **Suggest features:** Open an issue with your idea
+3. **Submit pull requests:** Fork the repo, make changes, submit PR
+
+### Development Guidelines
+
+- Follow existing code style (2-space indentation)
+- Test all changes in multiple browsers
+- Update documentation for new features
+- Maintain bilingual labels (te reo Māori + English)
+
+---
+
+## 📝 License
+
+This project is developed for **Te Whare o Raukura**.
+
+© 2025 Te Whare o Raukura. All rights reserved.
+
+---
+
+## 🙏 Acknowledgments
+
+- **Te Whare o Raukura** - Educational content and cultural guidance
+- **Tau Āweko methodology** - Traditional Māori numeracy system
+- **Firebase** - Authentication and database infrastructure
+- **Chart.js** - Data visualization
+- **Tailwind CSS** - UI styling framework
+
+---
+
+## 📞 Support
+
+For technical support or questions:
+
+- **Documentation:** See [DEPLOYMENT-CHECKLIST.md](DEPLOYMENT-CHECKLIST.md)
+- **Issues:** Open a GitHub issue
+- **Email:** [Your contact email]
+
+---
+
+## 🗺️ Roadmap
+
+### Planned Features
+
+- [ ] Mobile app version (React Native)
+- [ ] Offline mode with service workers
+- [ ] Audio pronunciation guides
+- [ ] Parent/whānau dashboard
+- [ ] Advanced analytics (learning curves, time-on-task)
+- [ ] Multi-language support (beyond Māori/English)
+- [ ] Integration with other learning systems
+- [ ] Gamification (badges, achievements)
+
+---
+
+## 📈 Version History
+
+### v1.0.0 (2025-01-15)
+- ✨ Initial release
+- 🎓 3 core lessons (base numbers, pū, tautahi)
+- 👨‍🏫 Teacher dashboard with class management
+- 📊 Analytics and reporting
+- 📝 Assessment system
+- 🎯 Interactive practice mode
+
+---
+
+<div align="center">
+
+**Whāia te iti kahurangi!**  
+*(Seek the treasures of great value)*
+
+---
+
+**Made with ❤️ for Te Whare o Raukura**
+
+[⬆ Back to top](#tau-āweko---te-whare-o-raukura)
+
+</div>
