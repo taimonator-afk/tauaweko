@@ -22,12 +22,12 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
 
 export const firebaseConfig = {
-    apiKey: "AIzaSyCloJB8y2ulkKohTMxPH32sDO9bKxp5J_8",
-    authDomain: "tau-aweko.firebaseapp.com",
-    projectId: "tau-aweko",
-    storageBucket: "tau-aweko.firebasestorage.app",
-    messagingSenderId: "740127816940",
-    appId: "1:740127816940:web:22b867d470581625b1b9c9"
+  apiKey: "AIzaSyCloJB8y2ulkKohTMxPH32sDO9bKxp5J_8",
+  authDomain: "tau-aweko.firebaseapp.com",
+  projectId: "tau-aweko",
+  storageBucket: "tau-aweko.firebasestorage.app",
+  messagingSenderId: "740127816940",
+  appId: "1:740127816940:web:cc15e439f254bb4bb1b9c9"
 };
 
 export const app = initializeApp(firebaseConfig);
