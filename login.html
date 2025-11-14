@@ -82,9 +82,13 @@ function getUserType() {
   return document.querySelector('input[name="userType"]:checked').value;
 }
 
+/* ---------------------------
+   SAVE USER PROFILE - FIXED: Now includes displayName
+--------------------------- */
 async function saveUserProfile(user, userType) {
   await setDoc(doc(db, "profiles", user.uid), {
     email: user.email,
+    displayName: user.displayName || user.email.split('@')[0], // Use Google name or email prefix
     userType,
     organisation: "Te Whare o Raukura",
     lastLogin: new Date().toISOString()
@@ -103,40 +107,77 @@ function redirectUser(userType) {
    GOOGLE LOGIN
 --------------------------- */
 document.getElementById("googleLogin").onclick = async () => {
-  const provider = new GoogleAuthProvider();
-  const result = await signInWithPopup(auth, provider);
+  try {
+    const provider = new GoogleAuthProvider();
+    const result = await signInWithPopup(auth, provider);
 
-  const userType = getUserType();
-  await saveUserProfile(result.user, userType);
-  redirectUser(userType);
+    const userType = getUserType();
+    await saveUserProfile(result.user, userType);
+    redirectUser(userType);
+  } catch (error) {
+    console.error("Google login error:", error);
+    alert("Login failed: " + error.message);
+  }
 };
 
 /* ---------------------------
    EMAIL LOGIN
 --------------------------- */
 document.getElementById("emailLogin").onclick = async () => {
-  const email = document.getElementById("email").value;
-  const pass = document.getElementById("password").value;
+  try {
+    const email = document.getElementById("email").value;
+    const pass = document.getElementById("password").value;
 
-  const result = await signInWithEmailAndPassword(auth, email, pass);
+    if (!email || !pass) {
+      alert("Please enter both email and password.");
+      return;
+    }
 
-  const userType = getUserType();
-  await saveUserProfile(result.user, userType);
-  redirectUser(userType);
+    const result = await signInWithEmailAndPassword(auth, email, pass);
+
+    const userType = getUserType();
+    await saveUserProfile(result.user, userType);
+    redirectUser(userType);
+  } catch (error) {
+    console.error("Email login error:", error);
+    alert("Login failed: " + error.message);
+  }
 };
 
 /* ---------------------------
    SIGNUP
 --------------------------- */
 document.getElementById("emailSignup").onclick = async () => {
-  const email = document.getElementById("email").value;
-  const pass = document.getElementById("password").value;
+  try {
+    const email = document.getElementById("email").value;
+    const pass = document.getElementById("password").value;
 
-  const result = await createUserWithEmailAndPassword(auth, email, pass);
+    if (!email || !pass) {
+      alert("Please enter both email and password.");
+      return;
+    }
 
-  const userType = getUserType();
-  await saveUserProfile(result.user, userType);
-  redirectUser(userType);
+    if (pass.length < 6) {
+      alert("Password must be at least 6 characters long.");
+      return;
+    }
+
+    const result = await createUserWithEmailAndPassword(auth, email, pass);
+
+    const userType = getUserType();
+    await saveUserProfile(result.user, userType);
+    redirectUser(userType);
+  } catch (error) {
+    console.error("Signup error:", error);
+    
+    if (error.code === 'auth/email-already-in-use') {
+      alert("This email is already registered. Please login instead.");
+    } else if (error.code === 'auth/weak-password') {
+      alert("Password is too weak. Please use at least 6 characters.");
+    } else {
+      alert("Signup failed: " + error.message);
+    }
+  }
 };
 
 /* ---------------------------
@@ -144,10 +185,19 @@ document.getElementById("emailSignup").onclick = async () => {
 --------------------------- */
 document.getElementById("resetPassword").onclick = async () => {
   const email = document.getElementById("email").value;
-  if (!email) return alert("Enter your email first.");
+  
+  if (!email) {
+    alert("Please enter your email address first.");
+    return;
+  }
 
-  await sendPasswordResetEmail(auth, email);
-  alert("Password reset email sent.");
+  try {
+    await sendPasswordResetEmail(auth, email);
+    alert("Password reset email sent! Check your inbox.");
+  } catch (error) {
+    console.error("Password reset error:", error);
+    alert("Failed to send reset email: " + error.message);
+  }
 };
 
 </script>
